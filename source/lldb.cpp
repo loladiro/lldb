@@ -81,6 +81,7 @@
 #include "Plugins/Platform/gdb-server/PlatformRemoteGDBServer.h"
 #include "Plugins/Process/gdb-remote/ProcessGDBRemote.h"
 #include "Plugins/DynamicLoader/Static/DynamicLoaderStatic.h"
+#include "Plugins/JITLoader/GDBJIT/JITLoaderGDB.h"
 
 using namespace lldb;
 using namespace lldb_private;
@@ -161,6 +162,7 @@ lldb_private::Initialize ()
         PlatformRemoteGDBServer::Initialize ();
         ProcessGDBRemote::Initialize();
         DynamicLoaderStatic::Initialize();
+        JITLoaderGDB::Initialize();
 
         // Scan for any system or user LLDB plug-ins
         PluginManager::Initialize();
@@ -240,6 +242,7 @@ lldb_private::Terminate ()
 #endif
     ProcessGDBRemote::Terminate();
     DynamicLoaderStatic::Terminate();
+    JITLoaderGDB::Terminate();
 
     Log::Terminate();
 }
