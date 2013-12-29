@@ -18,8 +18,11 @@
 #include "lldb/Target/Process.h"
 #include "lldb/Target/SectionLoadList.h"
 #include "lldb/Target/Target.h"
+#include "lldb/Symbol/SymbolVendor.h"
 
 #include "JITLoaderGDB.h"
+
+#include "../../SymbolFile/DWARF/SymbolFileDWARF.h"
 
 using namespace lldb;
 using namespace lldb_private;
@@ -128,7 +131,8 @@ JITLoaderGDB::JITDebugBreakpointHit(void *baton,
 
     if (!images.FindSymbolsWithNameAndType(ConstString("__jit_debug_descriptor"), eSymbolTypeData, target_symbols))
     {
-        log->Printf("Could not find __jit_debug_descriptor");
+        if (log)
+            log->Printf("Could not find __jit_debug_descriptor");
         return false;
     }
 
@@ -139,7 +143,8 @@ JITLoaderGDB::JITDebugBreakpointHit(void *baton,
 
     if (!jit_descriptor_addr || !jit_descriptor_addr->IsValid())
     {
-        log->Printf("__jit_debug_descriptor address is not valid");
+        if(log)
+            log->Printf("__jit_debug_descriptor address is not valid");
         return false;
     }
 
@@ -155,7 +160,8 @@ JITLoaderGDB::JITDebugBreakpointHit(void *baton,
     Error error;
     size_t bytes_read = process->DoReadMemory(jit_addr, &jit_desc, jit_desc_size, error);
     if (bytes_read != jit_desc_size || !error.Success()) {
-        log->Printf("Failed to read the JIT descirptor");
+        if (log)
+            log->Printf("Failed to read the JIT descirptor");
         return false;
     }
 
@@ -165,6 +171,7 @@ JITLoaderGDB::JITDebugBreakpointHit(void *baton,
     const size_t jit_entry_size = sizeof(jit_entry);
     bytes_read = process->DoReadMemory(jit_relevant_entry, &jit_entry, jit_entry_size, error);
     if (bytes_read != jit_entry_size || !error.Success()) {
+        if (log)
         log->Printf("Failed to read the JIT entry!");
         return false;
     }
@@ -177,7 +184,8 @@ JITLoaderGDB::JITDebugBreakpointHit(void *baton,
 
     if (jit_action == JIT_REGISTER_FN)
     {
-        log->Printf("Registering Function!");
+        if (log)
+            log->Printf("Registering Function!");
         module_sp = process->ReadModuleFromMemory(FileSpec("in_memory_object", false), symbolfile_addr, symbolfile_size);
         if (module_sp)
         {
@@ -185,16 +193,18 @@ JITLoaderGDB::JITDebugBreakpointHit(void *baton,
             jit_objects.insert(std::pair<lldb::addr_t,const lldb::ModuleSP>(symbolfile_addr,module_sp));
             module_sp->SetLoadAddress(target, 0, changed);
             images.AppendIfNeeded(module_sp);
-            ModuleList modules;
-            modules.Append(module_sp);
-            target.ModulesDidLoad(modules);
+            SymbolFileDWARF *s = static_cast<SymbolFileDWARF*>(module_sp->GetSymbolVendor()->GetSymbolFile());
+            //s->Index();
+            //s->DumpIndexes();
         } else {
-            log->Printf("Failed to load Module!");
+            if (log)
+                log->Printf("Failed to load Module!");
         }
     }
     else if (jit_action == JIT_UNREGISTER_FN)
     {
-        log->Printf("Unregistering Function!");
+        if (log)
+            log->Printf("Unregistering Function!");
         JITObjectMap::iterator it = jit_objects.find(symbolfile_addr);
         if (it != jit_objects.end())
         {
